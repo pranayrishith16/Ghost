@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/pranayrishith/Documents/Ghost/mlruns/126037532139096706/32f3046695ac49c9b2d4e0e0b190052d/artifacts
+end_time: 1756594525344
+entry_point_name: ''
+experiment_id: '126037532139096706'
+lifecycle_stage: active
+run_id: 32f3046695ac49c9b2d4e0e0b190052d
+run_name: Process_large_number_PDFS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756594525335
+status: 3
+tags: []
+user_id: pranayrishith

@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/pranayrishith/Documents/Ghost/mlruns/126037532139096706/b376889a95df479ba5aeaf0b97652ef0/artifacts
+end_time: 1756615915412
+entry_point_name: ''
+experiment_id: '126037532139096706'
+lifecycle_stage: active
+run_id: b376889a95df479ba5aeaf0b97652ef0
+run_name: luxuriant-worm-597
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756615425135
+status: 3
+tags: []
+user_id: pranayrishith

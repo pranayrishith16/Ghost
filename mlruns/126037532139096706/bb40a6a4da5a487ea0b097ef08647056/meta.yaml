@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/pranayrishith/Documents/Ghost/mlruns/126037532139096706/bb40a6a4da5a487ea0b097ef08647056/artifacts
+end_time: 1756594547614
+entry_point_name: ''
+experiment_id: '126037532139096706'
+lifecycle_stage: active
+run_id: bb40a6a4da5a487ea0b097ef08647056
+run_name: unruly-frog-683
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756594547582
+status: 3
+tags: []
+user_id: pranayrishith

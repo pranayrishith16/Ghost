@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/pranayrishith/Documents/Ghost/mlruns/126037532139096706/20b1c282f0ff4e3cac3cefb3a0a7230c/artifacts
+end_time: 1756592435865
+entry_point_name: ''
+experiment_id: '126037532139096706'
+lifecycle_stage: active
+run_id: 20b1c282f0ff4e3cac3cefb3a0a7230c
+run_name: intrigued-auk-216
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756592435821
+status: 3
+tags: []
+user_id: pranayrishith

@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/pranayrishith/Documents/Ghost/mlruns/126037532139096706/5ccac4cb25924630acc183d553ea4ef1/artifacts
+end_time: 1756594062029
+entry_point_name: ''
+experiment_id: '126037532139096706'
+lifecycle_stage: active
+run_id: 5ccac4cb25924630acc183d553ea4ef1
+run_name: casual-sheep-531
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756594061988
+status: 3
+tags: []
+user_id: pranayrishith

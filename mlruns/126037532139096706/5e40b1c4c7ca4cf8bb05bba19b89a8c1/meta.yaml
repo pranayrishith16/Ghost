@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/pranayrishith/Documents/Ghost/mlruns/126037532139096706/5e40b1c4c7ca4cf8bb05bba19b89a8c1/artifacts
+end_time: 1756592314386
+entry_point_name: ''
+experiment_id: '126037532139096706'
+lifecycle_stage: active
+run_id: 5e40b1c4c7ca4cf8bb05bba19b89a8c1
+run_name: calm-skunk-783
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756592314347
+status: 3
+tags: []
+user_id: pranayrishith
