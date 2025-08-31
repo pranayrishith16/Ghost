@@ -1,0 +1,16 @@
+data_paths:
+  pillar1_raw: data/raw/pillar1_cases
+  pillar1_processed: data/processed/pillar1_cases/case_chunks.jsonl
+  # pillar2_raw: data/raw/pillar2_statutes
+  # pillar2_processed: data/processed/pillar2_statutes/statute_chunks.jsonl
+  # pillar3_raw: data/raw/pillar3_regulations
+  # pillar3_processed: data/processed/pillar3_regulations/regulation_chunks.jsonl
+
+processing:
+  chunk_size: 1000
+  chunk_overlap: 200
+  batch_size: 50
+
+mlflow:
+  experiment_name: Ghost
+  tracking_uri: http://localhost:5000

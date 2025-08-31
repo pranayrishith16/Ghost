@@ -1,0 +1,27 @@
+[project]
+name = "ghost"
+version = "0.1.0"
+description = "MVP"
+authors = [
+    {name = "pranay rishith",email = "52948338+pranayrishith16@users.noreply.github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "docker (>=7.1.0,<8.0.0)",
+    "easyocr (>=1.7.2,<2.0.0)",
+    "langchain-text-splitters (>=0.3.10,<0.4.0)",
+    "mlflow (>=3.3.2,<4.0.0)",
+    "numpy (>=2.3.2,<3.0.0)",
+    "pandas (>=2.3.2,<3.0.0)",
+    "pillow (>=11.3.0,<12.0.0)",
+    "pymupdf (>=1.26.4,<2.0.0)",
+    "pytesseract (>=0.3.13,<0.4.0)",
+    "requests (>=2.32.5,<3.0.0)",
+    "urllib3 (>=2.5.0,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
