@@ -3,14 +3,16 @@ import json
 import mlflow
 import pandas as pd
 from src.data_processing.case_extractor import process_case_pdf
-from src.utils.config_loader import load_config
+from src.utils.config_loader import config_load
 
 def process_pillar1():
     """Main processing pipeline for Pillar1 (Cases)"""
-    config = load_config()
+    mlflow.set_experiment('Refined Directory RAL LLM LAW')
 
-    PDF_FOLDER = Path(config['data_paths']['pillar1_raw'])
-    OUTPUT_LOCATION = Path(config['data_paths']['pillar1_processed'])
+    config = config_load()
+
+    PDF_FOLDER = Path(__file__).resolve().parent.parent.parent / config['data_paths']['pillar1_raw']
+    OUTPUT_LOCATION = Path(__file__).parent.parent.parent / config['data_paths']['pillar1_processed']
     CHUNK_SIZE = config['processing']['chunk_size']
     CHUNK_OVERLAP = config['processing']['chunk_overlap']
     BATCH_SIZE = config['processing']['batch_size']

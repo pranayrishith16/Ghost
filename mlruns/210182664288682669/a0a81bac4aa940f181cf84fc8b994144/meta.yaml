@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/pranayrishith/Documents/Ghost/mlruns/210182664288682669/a0a81bac4aa940f181cf84fc8b994144/artifacts
+end_time: 1756688722339
+entry_point_name: ''
+experiment_id: '210182664288682669'
+lifecycle_stage: active
+run_id: a0a81bac4aa940f181cf84fc8b994144
+run_name: resilient-hog-905
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756688722327
+status: 3
+tags: []
+user_id: pranayrishith

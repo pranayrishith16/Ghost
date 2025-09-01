@@ -1,0 +1,14 @@
+artifact_uri: mlflow-artifacts:/0/2fb628b2330447ae8b723220f5ff0ac7/artifacts
+end_time: 1756682458345
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 2fb628b2330447ae8b723220f5ff0ac7
+run_name: Data_Process_Pillar_1_PDFS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756682458336
+status: 3
+tags: []
+user_id: pranayrishith

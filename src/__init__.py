@@ -18,6 +18,6 @@ __all__ = [
     'extract_normal_pdf',
     'process_case_pdf', 
     'clean_case_text', 
-    'split_text'
+    'split_text',
     'config_load',
 ]

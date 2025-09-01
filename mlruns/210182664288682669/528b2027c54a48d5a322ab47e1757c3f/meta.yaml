@@ -1,0 +1,14 @@
+artifact_uri: file:///Users/pranayrishith/Documents/Ghost/mlruns/210182664288682669/528b2027c54a48d5a322ab47e1757c3f/artifacts
+end_time: 1756688722263
+entry_point_name: ''
+experiment_id: '210182664288682669'
+lifecycle_stage: active
+run_id: 528b2027c54a48d5a322ab47e1757c3f
+run_name: Data_Process_Pillar_1_PDFS
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756688722252
+status: 3
+tags: []
+user_id: pranayrishith

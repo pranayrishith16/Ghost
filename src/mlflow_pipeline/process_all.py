@@ -1,5 +1,5 @@
 import mlflow
-from .process_pillar1 import process_pillar1
+from .chunk_pillar1 import process_pillar1
 
 def process_everything():
     """Orchestrate processing of all three pillars"""
