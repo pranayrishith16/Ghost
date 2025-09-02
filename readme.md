@@ -45,7 +45,5 @@ To run the system,
 - currently planning to containerize using docker.
 ## Documentation
 
-[Documentation](https://linktodocumentation)
-
 Statues data has been produced from: [text](https://uscode.house.gov/download/download.shtml)
 
