@@ -2,12 +2,12 @@ from pathlib import Path
 import json
 import mlflow
 import pandas as pd
-from src.data_processing.case_extractor import process_case_pdf
+from src.data_processing.case_pdf_extractor import process_case_pdf
 from src.utils.config_loader import config_load
 
 def process_pillar1():
     """Main processing pipeline for Pillar1 (Cases)"""
-    mlflow.set_experiment('Refined Directory RAL LLM LAW')
+    mlflow.set_experiment('Pillar 1 processing for RAG')
 
     config = config_load()
 
