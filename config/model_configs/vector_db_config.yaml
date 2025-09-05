@@ -1,0 +1,61 @@
+# Default vector database configuration
+default:
+  type: "chroma"
+  host: "localhost"
+  port: 8000
+  collection_name: "law_cases"
+  distance_metric: "cosine"
+
+# ChromaDB specific settings
+chroma:
+  persist_directory: "data/chroma_db"
+  collection_metadata: {"hnsw:space": "cosine"}
+  client_settings:
+    chroma_server_host: "localhost"
+    chroma_server_http_port: 8000
+    chroma_server_ssl_enabled: false
+
+# Pinecone specific settings
+pinecone:
+  environment: "us-west1-gcp"
+  index_name: "law-cases"
+  pod_type: "p1.x1"
+  metric: "cosine"
+  timeout: 30
+
+# Weaviate specific settings
+weaviate:
+  url: "http://localhost:8080"
+  additional_headers: {"X-OpenAI-Api-Key": "${OPENAI_API_KEY}"}
+  class_name: "LawCase"
+  vectorizer: "text2vec-openai"
+  module_config:
+    "text2vec-openai":
+      vectorizeClassName: false
+
+# Qdrant specific settings
+qdrant:
+  url: "http://localhost:6333"
+  prefer_grpc: false
+  collection_name: "law_cases"
+  vectors_config:
+    size: 1536
+    distance: "Cosine"
+
+# Environment-specific configurations
+environments:
+  development:
+    default_db: "chroma"
+    persistence: true
+    cache_size: 1000
+
+  testing:
+    default_db: "chroma"
+    persistence: false
+    cache_size: 500
+
+  production:
+    default_db: "pinecone"
+    persistence: true
+    cache_size: 10000
+    backup_enabled: true

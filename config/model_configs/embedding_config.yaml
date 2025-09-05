@@ -1,0 +1,100 @@
+# OpenAI Embeddings
+openai:
+  model_name: "text-embedding-3-large"
+  dimension: 3072
+  batch_size: 100
+  max_tokens: 8191
+  api_base: "https://api.openai.com/v1"
+  timeout: 30
+  retry_attempts: 3
+  retry_delay: 1.0
+
+# Alternative models
+models:
+  small:
+    model_name: "text-embedding-3-small"
+    dimension: 1536
+    cost_per_1k_tokens: 0.00002
+  large:
+    model_name: "text-embedding-3-large"
+    dimension: 3072
+    cost_per_1k_tokens: 0.00013
+  ada_002:
+    model_name: "text-embedding-ada-002"
+    dimension: 1536
+    cost_per_1k_tokens: 0.0001
+
+# Hugging Face Transformers
+huggingface:
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  dimension: 384
+  batch_size: 32
+  max_length: 256
+  device: "cpu"  # or "cuda"
+  trust_remote_code: false
+
+  models:
+    mini:
+      model_name: "sentence-transformers/all-MiniLM-L6-v2"
+      dimension: 384
+      performance: "fast"
+    mppnet:
+      model_name: "sentence-transformers/all-mpnet-base-v2"
+      dimension: 768
+      performance: "balanced"
+    roberta:
+      model_name: "sentence-transformers/all-roberta-large-v1"
+      dimension: 1024
+      performance: "high_quality"
+
+# Sentence Transformers (specialized)
+sentence_transformers:
+  model_name: "all-mpnet-base-v2"
+  dimension: 768
+  batch_size: 64
+  device: "cpu"
+  normalize_embeddings: true
+
+# Legal-specific models
+legal_models:
+  legal_bert:
+    model_name: "nlpaueb/legal-bert-base-uncased"
+    dimension: 768
+    specialized_for: "legal_documents"
+  case_law:
+    model_name: "law-ai/legalBERT"
+    dimension: 768
+    specialized_for: "case_law"
+
+# Cohere Embeddings
+cohere:
+  model_name: "embed-english-v3.0"
+  dimension: 1024
+  batch_size: 96
+  input_type: "search_document"  # or "search_query"
+  truncate: "END"
+
+# Local/Self-hosted models
+local:
+  model_name: "custom-legal-embeddings"
+  endpoint: "http://localhost:8080/embed"
+  dimension: 768
+  batch_size: 16
+  timeout: 60
+
+# Environment-specific defaults
+environments:
+  development:
+    default_provider: "sentence_transformers"
+    default_model: "all-MiniLM-L6-v2"
+    cache_embeddings: true
+
+  testing:
+    default_provider: "sentence_transformers"
+    default_model: "all-MiniLM-L6-v2"
+    cache_embeddings: false
+
+  production:
+    default_provider: "openai"
+    default_model: "text-embedding-3-large"
+    cache_embeddings: true
