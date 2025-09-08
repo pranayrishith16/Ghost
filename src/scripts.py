@@ -9,4 +9,4 @@ config = get_config()
 dir = Path(config.data_dir)
 
 pipeline = RAGPipeline()
-pipeline.batch_injest(dir)
+pipeline.batch_ingest(dir)

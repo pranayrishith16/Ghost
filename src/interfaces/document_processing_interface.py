@@ -1,27 +1,32 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
 from pathlib import Path
+from typing import Dict, Any, List
+from enum import Enum
+
+class DocumentFormat(Enum):
+    PDF='pdf'
+    DOCX='docx'
+    TXT='txt'
 
 
 class DocumentProcessorInterface(ABC):
-    """Abstract interface for document processing"""
+    @abstractmethod
+    def process_document(self, file_path: Path) -> Dict[str, Any]:
+        raise NotImplementedError
 
     @abstractmethod
-    def extract_text(self,file_path:Path):
-        """Extract text from document"""
-        pass
+    def validate_document(self, file_path: Path) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def extract_text(self, file_path: Path) -> str:
+        raise NotImplementedError
+
+    @abstractmethod
+    def extract_metadata(self, file_path: Path) -> Dict[str, Any]:
+        raise NotImplementedError
     
     @abstractmethod
-    def extract_metadata(self,file_path:Path):
-        """Extract metadata from document"""
-        pass
-
-    @abstractmethod
-    def process_document(self,file_path:Path):
-        """Process document and return text + metadata"""
-        pass
-
-    @abstractmethod
-    def validate_document(self,file_path:Path):
-        """Valid if document id valid and processable"""
-        pass
+    def get_supported_formats(self) -> List[DocumentFormat]:
+        """Get list of supported document formats"""
+        raise NotImplementedError

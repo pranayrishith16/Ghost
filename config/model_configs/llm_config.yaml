@@ -1,0 +1,11 @@
+openrouter:
+  model_name: "gpt-oss-20b"
+  base_url: "https://openrouter.ai/api/v1"
+  max_tokens: 2000
+  temperature: 0.1
+  top_p: 0.9
+  frequency_penalty: 0.0
+  presence_penalty: 0.0
+  max_context_length: 16000
+  system_prompt: "You are a legal research assistant. Provide accurate and comprehensive legal analysis."
+  enable_citations: true
