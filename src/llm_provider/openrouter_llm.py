@@ -3,9 +3,8 @@ import time
 from typing import List, Dict, Any, Optional
 import tiktoken
 
-from src.interfaces.llm_provider import LLMProviderInterface
-from src.config.settings import get_config
-from src.core.exceptions import LLMProviderError
+from src.interfaces.llm_provider_interface import LLMProviderInterface
+from config.settings import get_config
 
 try:
     import openai
@@ -21,7 +20,7 @@ class OpenRouterProvider(LLMProviderInterface):
         
         # Initialize OpenRouter client (uses OpenAI SDK with custom base URL)
         if not self.config.api_key:
-            raise LLMProviderError("OpenRouter API key is required")
+            raise Exception("OpenRouter API key is required")
         
         # OpenRouter uses OpenAI-compatible API
         self.client = openai.OpenAI(
@@ -66,7 +65,7 @@ class OpenRouterProvider(LLMProviderInterface):
             
         except Exception as e:
             self.logger.error(f"OpenRouter generation failed: {str(e)}")
-            raise LLMProviderError(f"OpenRouter generation failed: {str(e)}")
+            raise Exception(f"OpenRouter generation failed: {str(e)}")
     
     def generate_with_context(self, question: str, context: List[str], max_tokens: int = None) -> str:
         """Generate answer using provided context"""
@@ -111,7 +110,7 @@ class OpenRouterProvider(LLMProviderInterface):
             
         except Exception as e:
             self.logger.error(f"OpenRouter context generation failed: {str(e)}")
-            raise LLMProviderError(f"OpenRouter context generation failed: {str(e)}")
+            raise Exception(f"OpenRouter context generation failed: {str(e)}")
     
     def generate_with_fallbacks(self, question: str, context: List[str], 
                                preferred_providers: List[str] = None, max_tokens: int = None) -> str:
@@ -149,7 +148,7 @@ class OpenRouterProvider(LLMProviderInterface):
             
         except Exception as e:
             self.logger.error(f"OpenRouter fallback generation failed: {str(e)}")
-            raise LLMProviderError(f"OpenRouter fallback generation failed: {str(e)}")
+            raise Exception(f"OpenRouter fallback generation failed: {str(e)}")
     
     def get_model_info(self) -> Dict[str, Any]:
         """Get model information"""
@@ -212,3 +211,12 @@ class OpenRouterProvider(LLMProviderInterface):
         except Exception as e:
             self.logger.error(f"Failed to get available models: {str(e)}")
             return []
+        
+    def generate_streaming(self, prompt, config = None, **kwargs):
+        return
+    
+    def estimate_cost(self, input_tokens, output_tokens):
+        return
+    
+    def check_content_policy(self, text):
+        return

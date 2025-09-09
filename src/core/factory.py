@@ -1,4 +1,6 @@
 # interfaces
+from typing import Optional
+import config
 from src.generation.rag_generator import RAGGenerator
 from src.interfaces import llm_provider_interface
 from src.interfaces.document_processing_interface import DocumentProcessorInterface
@@ -7,6 +9,7 @@ from src.interfaces.monitor import MonitorInterface
 from src.interfaces.embedder import EmbedderInterface
 from src.interfaces.vector_store_interface import VectorStoreInterface
 from src.interfaces.retriever_interface import RetrieverInterface
+from src.interfaces.llm_provider_interface import LLMProviderInterface
 
 ## concrete implementations
 from src.document_processor.pdf_extractor import PDFExtractor
@@ -16,6 +19,7 @@ from src.vector_store.weaviate import WeaviateStore
 from src.retrieval.basic_retrieval import BasicRetriever
 from src.retrieval.hybrid_retrieval import HybridRetriever
 from src.retrieval.rerank_retrieval import RerankRetriever
+from src.llm_provider.openrouter_llm import OpenRouterProvider
 
 
 # Simple no-op monitor to replace MLflow
@@ -51,7 +55,7 @@ class MonitoringFactory:
 class EmbedderFactory:
     @staticmethod
     def create(embedder_type=None) -> EmbedderInterface:
-        if embedder_type == 'sentence_transformers':
+        if embedder_type == 'sentence-transformers':
             return SentenceTransformersEmbedder()
         else:
             raise Exception(f'Sentence transformers not working')
@@ -101,3 +105,12 @@ class GenerationFactory:
                            llm_provider: llm_provider_interface) -> RAGGenerator:
         """Create RAG generator with specified retriever and LLM provider"""
         return RAGGenerator(retriever, llm_provider)
+    
+
+class LLMProviderFactory:
+    """factory for creating LLM instances"""
+
+    @staticmethod
+    def create(provider_type: Optional[str] = None) -> LLMProviderInterface:
+        if provider_type == 'openrouter':
+            return OpenRouterProvider()

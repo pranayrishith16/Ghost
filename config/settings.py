@@ -3,7 +3,6 @@ from pathlib import Path
 from turtle import st
 from typing import Optional, Any, Dict
 import os
-from numpy import _1D
 import yaml
 from dotenv import load_dotenv
 
@@ -59,7 +58,7 @@ class MonitoringConfig:
 @dataclass
 class AppConfig:
     chunking: ChunkingConfig
-    monitoring: MonitoringConfig
+    # monitoring: MonitoringConfig
     embedding: EmbeddingConfig
     llm:LLMConfig
     vector_store:VectorStoreConfig
@@ -101,7 +100,7 @@ def config_load(config_path: Optional[str] = None) -> AppConfig:
     llm_yaml = _load_yaml_config(base / "llm_config.yaml")
 
     # Embedding provider and defaults
-    embed_provider = os.getenv("EMBEDDING_PROVIDER", "sentence_transformers")
+    embed_provider = os.getenv("EMBEDDING_PROVIDER", "sentence-transformers")
     provider_defaults: Dict[str, Any] = embedding_yaml.get(embed_provider, {})
     # Support both 'normalize' and 'normalize_embeddings' keys from YAML
     normalize_default = provider_defaults.get("normalize", provider_defaults.get("normalize_embeddings", True))

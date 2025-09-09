@@ -3,14 +3,24 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List
+from unittest import result
+
+from blinker import ANY
+from cycler import L
 
 from config.settings import get_config
 from src.core.factory import (
     DocumentProcessorFactory,
     ChunkingFactory,
     EmbedderFactory,
-    VectorStoreFactory
+    VectorStoreFactory,
+    LLMProviderFactory
 )
+
+# Import your custom components
+from src.retrieval.basic_retrieval import BasicRetriever
+from src.retrieval.hybrid_retrieval import HybridRetriever
+from src.retrieval.rerank_retrieval import RerankRetriever
 
 class RAGPipeline:
     """Main RAG pipeline that coordinates all components."""
@@ -23,7 +33,12 @@ class RAGPipeline:
         self.document_processor = DocumentProcessorFactory.create("pdf")
         self.chunker = ChunkingFactory.create(self.config.chunking.strategy)
         self.embedder = EmbedderFactory.create(self.config.embedding.provider)
-        self.vector_store = VectorStoreFactory.create('weaviate')
+        self.vector_store = VectorStoreFactory.create(
+            self.config.vector_store.provider or 'weaviate'
+        )
+        self.llm_provider = LLMProviderFactory.create(
+            self.config.llm.provider or 'openrouter'
+        )
 
     def ingest_document(self, file_path: Path, run_id: str | None = None) -> Dict[str, Any]:
         """Process a single document through ingestion, chunking, and embedding."""
@@ -37,20 +52,37 @@ class RAGPipeline:
             chunks = self.chunker.chunk_text(
                 document_data["text"], document_data.get("metadata", {})
             )
+
             if not self.chunker.validate_chunks(chunks):
                 raise ValueError("Chunk validation failed")
 
             # 3. Embedding
             texts = [ch["text"] for ch in chunks]
             embeddings = self.embedder.embed_batch(texts)
-            for i, ch in enumerate(chunks):
-                vec = embeddings[i]
-                ch["embedding"] = vec
-                ch["embedding_dim"] = len(vec)
+            
+            # enhance chunks with embedding and document metadata
+            chunks_ids = [f"{file_path.stem}_{i}" for i in range(len(chunks))]
+            enhanced_chunks = []
+
+            for i,chunk in enumerate(chunks):
+                enhanced_chunk = {
+                    **chunk,
+                    "embedding":embeddings[i],
+                    "embedding_dim":len(embeddings[i]),
+                    "chunk_id": chunks_ids[i],
+                    "document_id": file_path.stem,
+                    "document_path": str(file_path),
+                    "ingestion_timestamp": datetime.now().isoformat(),
+                }
+                enhanced_chunks.append(enhanced_chunk)
+
+            #4. store in vector database
+            self.vector_store.add_documents(enhanced_chunks)
 
             result = {
                 "file_path": str(file_path),
-                "chunks": chunks,
+                "document_id": file_path.stem,
+                "chunks": enhanced_chunks,
                 "processing_stats": {
                     "total_chunks": len(chunks),
                     "success": True,
@@ -59,8 +91,9 @@ class RAGPipeline:
                 "timestamp": datetime.now().isoformat(),
                 "run_id": run_id,
             }
-            self.logger.info(f"Successfully processed {file_path}: {len(chunks)} chunks")
+        
             return result
+
         except Exception as e:
             self.logger.error(f"Failed to process document {file_path}: {e}")
             raise
@@ -116,21 +149,6 @@ class RAGPipeline:
                     results.append({"file": str(pdf_file), "status": "failed", "error": str(e)})
                     self.logger.warning(f"Skipping invalid PDF {pdf_file}: {e}")
                     continue
-        
-        # Add all chunks to vector store
-        if all_chunks_for_vector_store:
-            try:
-                self.vector_store.add_documents(all_chunks_for_vector_store)
-                self.logger.info(f"Added {len(all_chunks_for_vector_store)} chunks to vector store")
-            except Exception as e:
-                self.logger.error(f"Failed to add chunks to vector store: {e}")
-
-        # Log the output file as an artifact
-        # try:
-        #     if Path(output_file).exists():
-        #         self.monitor.log_artifact(output_file, "processed_chunks")
-        # except Exception as e:
-        #     self.logger.warning(f"Failed to log artifact {output_file}: {e}")
 
         batch_summary = {
             "total_files": total_files,
@@ -143,21 +161,141 @@ class RAGPipeline:
             "completed_at": datetime.now().isoformat(),
         }
 
-        # Log batch metrics
-        # try:
-        #     self.monitor.log_metrics(
-        #         {
-        #             "total_files": total_files,
-        #             "successful_files": successful_files,
-        #             "failed_files": failed_files,
-        #             "total_chunks": total_chunks,
-        #             "success_rate": batch_summary["success_rate"],
-        #         }
-        #     )
-        # except Exception as e:
-        #     self.logger.warning(f"Failed to log batch metrics: {e}")
 
         self.logger.info(
             f"Batch ingestion completed: {successful_files}/{total_files} files successful, {total_chunks} chunks created"
         )
         return batch_summary
+    
+    def query(self, question:str, max_results:int = 10, filters:Dict[str,Any] = None) -> Dict[str,Any]:
+        """
+        process a query through the RAG pipeline
+        returns the answer and relevant context
+        """
+
+        #1. generate embedding
+        query_embedding = self.embedder.embed_text(question)
+
+        #2. retrieve relevant chunks
+        search_results = self.vector_store.search_by_vector(
+            query_vector=query_embedding,
+            limit=max_results,
+        )
+
+        if not search_results:
+            return {
+                "question": question,
+                    "answer": "I couldn't find any relevant information to answer your question.",
+                    "context_chunks": [],
+                    "total_chunks_retrieved": 0,
+            }
+        
+        #3. Generate answer using LLM
+        context_text = [result['text'] for result in search_results]
+        answer = self.llm_provider.generate_with_context(question,context_text)
+
+        response = {
+                "question": question,
+                "answer": answer,
+                "context_chunks": [
+                    {
+                        "text": result["text"],
+                        "score": result.get("score", 0.0),
+                        "document_id": result.get("document_id"),
+                        "chunk_id": result.get("chunk_id"),
+                        "source_file": result.get("source_file")
+                    }
+                    for result in search_results
+                ],
+                "total_chunks_retrieved": len(search_results),
+                "filters_applied": filters or {}
+            }
+        
+        return response
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get comprehensive statistics about the pipeline and all components."""
+        try:
+            return {
+                "vector_store": self.vector_store.get_stats(),
+                "embedder": {
+                    "model_info": self.embedder.get_model_info(),
+                    "embedding_dim": getattr(self.embedder, 'embedding_dim', None)
+                },
+                "llm_provider": self.llm_provider.get_model_info(),
+                "components": {
+                    "chunker_type": self.chunker.__class__.__name__,
+                    "document_processor_type": self.document_processor.__class__.__name__,
+                    "chunking_strategy": getattr(self.config.chunking, 'strategy', None),
+                    "embedding_provider": getattr(self.config.embedding, 'provider', None),
+                    "llm_provider": getattr(self.config.llm, 'provider', None)
+                },
+                "pipeline_info": {
+                    "version": "1.0.0",
+                    "initialized_at": datetime.now().isoformat(),
+                    "supports_batch_ingestion": True,
+                    "supports_query": True,
+                    "supports_monitoring": True
+                }
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to get pipeline stats: {e}")
+            raise Exception(f"Failed to get pipeline stats: {e}")
+
+    def health_check(self) -> Dict[str, Any]:
+        """Perform a health check on all pipeline components."""
+        health_status = {"overall": "healthy", "components": {}}
+        
+        components = {
+            "document_processor": self.document_processor,
+            "chunker": self.chunker,
+            "embedder": self.embedder,
+            "vector_store": self.vector_store,
+            "llm_provider": self.llm_provider,
+            "monitor": self.monitor
+        }
+        
+        for name, component in components.items():
+            try:
+                if hasattr(component, 'health_check'):
+                    status = component.health_check()
+                else:
+                    # Basic connectivity check
+                    status = {"status": "healthy", "message": "Component accessible"}
+                
+                health_status["components"][name] = status
+                
+                if status.get("status") != "healthy":
+                    health_status["overall"] = "degraded"
+                    
+            except Exception as e:
+                health_status["components"][name] = {
+                    "status": "unhealthy", 
+                    "error": str(e)
+                }
+                health_status["overall"] = "unhealthy"
+        
+        health_status["timestamp"] = datetime.now().isoformat()
+        return health_status
+
+    def reset_pipeline(self) -> Dict[str, Any]:
+        """Reset the pipeline state (clear vector store, reset monitoring)."""
+        try:
+            self.logger.info("Resetting pipeline state...")
+            
+            # Clear vector store
+            if hasattr(self.vector_store, 'clear'):
+                self.vector_store.clear()
+            
+            # Reset monitoring
+            if hasattr(self.monitor, 'reset'):
+                self.monitor.reset()
+            
+            return {
+                "status": "success",
+                "message": "Pipeline reset completed",
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Pipeline reset failed: {e}")
+            raise Exception(f"Pipeline reset failed: {e}")

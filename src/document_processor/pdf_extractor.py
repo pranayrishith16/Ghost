@@ -48,3 +48,6 @@ class PDFExtractor(DocumentProcessorInterface):
 
     def validate_document(self, file_path: Path) -> bool:
         return file_path.exists() and file_path.suffix.lower() == ".pdf"
+
+    def get_supported_formats(self):
+        pass

@@ -7,6 +7,8 @@ import weaviate
 import weaviate.classes as wvc
 from weaviate.classes.config import Property, DataType, Configure
 
+from contextlib import contextmanager
+
 class WeaviateStore:
     """Weaviate implementation of vector storage for legal docs"""
 
@@ -22,6 +24,10 @@ class WeaviateStore:
         self.client = client or weaviate.connect_to_local()
         self._ensure_collection()
 
+    def __exit__(self,exc_type,exc_val, exc_tb):
+        self.close()
+
+    @contextmanager
     def _ensure_collection(self) -> None:
         """Create the collection if it doesn't exist, using self-provided vectors."""
         try:

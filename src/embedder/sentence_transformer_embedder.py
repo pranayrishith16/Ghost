@@ -13,8 +13,8 @@ class SentenceTransformersEmbedder(EmbedderInterface):
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         cfg = get_config().embedding
-        if cfg.provider != "sentence_transformers":
-            raise ValueError(f"Invalid provider: {cfg.provider}. Expected 'sentence_transformers'")
+        if cfg.provider != "sentence-transformers":
+            raise ValueError(f"Invalid provider: {cfg.provider}. Expected 'sentence-transformers'")
         self.config = cfg
         self.model = SentenceTransformer(self.config.model_name, device=self.config.device)
         self._dimension = self.model.get_sentence_embedding_dimension()
