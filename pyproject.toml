@@ -5,7 +5,6 @@ description = "MVP"
 authors = [
     {name = "pranay rishith",email = "52948338+pranayrishith16@users.noreply.github.com"}
 ]
-readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "docker (>=7.1.0,<8.0.0)",
