@@ -1,22 +1,18 @@
 from os import pipe
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, APIRouter, Request
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from src.core.pipeline import RAGPipeline
 
-app = FastAPI(
-    title='Veritly AI Law RAG API',
-    version='1.0.0',
-    description='API system for RAG pipeline'
-)
+router = APIRouter()
 
 # Singleton pattern to load pipeline once
-def get_pipeline():
-    if not hasattr(app.state, "pipeline"):
-        app.state.pipeline = RAGPipeline()
-    return app.state.pipeline
+def get_pipeline(request:Request):
+    if not hasattr(request.app.state, "pipeline"):
+        request.app.state.pipeline = RAGPipeline()
+    return request.app.state.pipeline
 
 class QueryRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2048, description="The question to query.")
@@ -25,7 +21,7 @@ class QueryRequest(BaseModel):
     max_results: Optional[int] = Field(10, ge=1, le=50, description="Maximum number of results to return.")
     filters: Optional[Dict[str, Any]] = Field(None, description="Optional filters for retrieval.")
 
-@app.post('/query', summary='Query the pipeline', response_model=Dict[str,Any])
+@router.post('/query', summary='Query the pipeline', response_model=None)
 async def query_pipeline(request: QueryRequest, pipeline: RAGPipeline = Depends(get_pipeline)):
     try:
         response = pipeline.query(
