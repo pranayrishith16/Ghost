@@ -21,6 +21,7 @@ from src.core.factory import (
 from src.retrieval.basic_retrieval import BasicRetriever
 from src.retrieval.hybrid_retrieval import HybridRetriever
 from src.retrieval.rerank_retrieval import RerankRetriever
+from src.generation.rag_generator import RAGGenerator
 
 class RAGPipeline:
     """Main RAG pipeline that coordinates all components."""
@@ -39,6 +40,19 @@ class RAGPipeline:
         self.llm_provider = LLMProviderFactory.create(
             self.config.llm.provider or 'openrouter'
         )
+
+        #initialize your custom retrievers
+        self.retrievers = {
+            'basic': BasicRetriever(self.vector_store,self.embedder),
+            'hybrid':HybridRetriever(self.vector_store,self.embedder),
+            'rerank':RerankRetriever(self.vector_store,self.embedder)
+        }
+
+        #initializing custom generator
+        self.generators = {
+            strategy: RAGGenerator(retriever,self.llm_provider)
+            for strategy,retriever in self.retrievers.items()
+        }
 
     def ingest_document(self, file_path: Path, run_id: str | None = None) -> Dict[str, Any]:
         """Process a single document through ingestion, chunking, and embedding."""
@@ -167,51 +181,64 @@ class RAGPipeline:
         )
         return batch_summary
     
-    def query(self, question:str, max_results:int = 10, filters:Dict[str,Any] = None) -> Dict[str,Any]:
+    def query(
+            self, 
+            question:str, 
+            retrieval_strategy:str = 'basic',
+            query_type:str='legal_analysis',
+            max_results:int = 10, 
+            filters:Dict[str,Any] = None) -> Dict[str,Any]:
         """
         process a query through the RAG pipeline
         returns the answer and relevant context
         """
-
-        #1. generate embedding
-        query_embedding = self.embedder.embed_text(question)
-
-        #2. retrieve relevant chunks
-        search_results = self.vector_store.search_by_vector(
-            query_vector=query_embedding,
-            limit=max_results,
-        )
-
-        if not search_results:
-            return {
-                "question": question,
-                    "answer": "I couldn't find any relevant information to answer your question.",
-                    "context_chunks": [],
-                    "total_chunks_retrieved": 0,
-            }
         
-        #3. Generate answer using LLM
-        context_text = [result['text'] for result in search_results]
-        answer = self.llm_provider.generate_with_context(question,context_text)
+        try:
+            
+            # Validate retrieval strategy
+            if retrieval_strategy not in self.generators:
+                available = list(self.generators.keys())
+                raise ValueError(f"Unknown retrieval strategy '{retrieval_strategy}'. Available: {available}")
+            
+            # Use YOUR custom RAGGenerator (not basic LLM call)
+            generator = self.generators[retrieval_strategy]
+            response = generator.generate_response(
+                query=question,
+                query_type=query_type,
+                k=max_results,
+                filters=filters
+            )
 
-        response = {
-                "question": question,
-                "answer": answer,
-                "context_chunks": [
-                    {
-                        "text": result["text"],
-                        "score": result.get("score", 0.0),
-                        "document_id": result.get("document_id"),
-                        "chunk_id": result.get("chunk_id"),
-                        "source_file": result.get("source_file")
+            # Enhance response with pipeline metadata
+            enhanced_response = {
+                **response,
+                "pipeline_metadata": {
+                    "retrieval_strategy": retrieval_strategy,
+                    "query_type": query_type,
+                    "pipeline_version": "2.0.0",
+                    "components_used": {
+                        "retriever": self.retrievers[retrieval_strategy].__class__.__name__,
+                        "generator": "RAGGenerator",
+                        "embedder": self.embedder.__class__.__name__,
+                        "llm_provider": self.llm_provider.__class__.__name__
                     }
-                    for result in search_results
-                ],
-                "total_chunks_retrieved": len(search_results),
-                "filters_applied": filters or {}
+                }
             }
-        
-        return response
+
+            # Log comprehensive metrics
+            pipeline_metrics = {
+                "retrieval_strategy": retrieval_strategy,
+                "query_type": query_type,
+                "confidence_score": response.get("confidence_score", 0.0),
+                "sources_used": len(response.get("sources", [])),
+                "generation_successful": True
+            }
+            
+            return enhanced_response
+
+        except Exception as e:
+            self.logger.error(f"Pipeline query processing failed: {e}")
+            raise Exception(f"Query processing failed: {e}")
     
     def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive statistics about the pipeline and all components."""

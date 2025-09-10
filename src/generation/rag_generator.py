@@ -48,6 +48,7 @@ class RAGGenerator:
             
             # Step 1: Retrieve relevant documents
             retrieved_docs = self.retriever.retrieve(query, k=k, filters=filters)
+            print(retrieved_docs)
             
             if not retrieved_docs:
                 return self._handle_no_results(query)
@@ -195,7 +196,6 @@ class RAGGenerator:
         template_files = {
             'legal_analysis': 'legal_analysis.txt',
             'case_summary': 'case_summary.txt', 
-            'precedent_search': 'precedent_search.txt'
         }
         
         for template_name, filename in template_files.items():

@@ -48,8 +48,8 @@ class BasicRetriever(RetrieverInterface):
             # Search vector store
             self.logger.info(f"Searching vector store for top {k} results")
             results = self.vector_store.search(
-                query_vector=query_embedding,
-                k=k,
+                query=query_embedding[0],
+                limit=k,
                 filters=filters
             )
             
@@ -148,3 +148,12 @@ class BasicRetriever(RetrieverInterface):
             return True
             
         return True
+
+    def explain_retrieval(self, query, document_id):
+        return 
+    
+    def get_index_info(self):
+        return 
+    
+    def get_supported_filters(self):
+        return

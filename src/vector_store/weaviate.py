@@ -152,13 +152,13 @@ class WeaviateStore:
             self.logger.error(f"Failed to add documents to Weaviate: {e}")
             raise
 
-    def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5,filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """Search for similar documents using a text query by embedding it first."""
-        if not self.embedder:
-            raise ValueError("Embedder not provided. Cannot embed query.")
+        # if not self.embedder:
+        #     raise ValueError("Embedder not provided. Cannot embed query.")
         try:
-            qv = self.embedder.embed_text(query)
-            return self.search_by_vector(qv, limit=limit)
+            # qv = self.embedder.embed_text(query)
+            return self.search_by_vector(query, limit=limit)
         except Exception as e:
             self.logger.error(f"Search failed: {e}")
             raise
@@ -266,3 +266,18 @@ class WeaviateStore:
         """Close the Weaviate client connection."""
         if hasattr(self, "client") and self.client:
             self.client.close()
+
+    def get_all_documents(self):
+        """Get all documents for BM25 initialization"""
+        try:
+            # Query all objects from your collection
+            result = self.client.query.get(self.collection_name).with_additional(['id']).do()
+            documents = []
+            for obj in result.get('data', {}).get('Get', {}).get(self.collection_name, []):
+                documents.append({
+                    'text': obj.get('text', ''),
+                    'metadata': obj.get('metadata', {})
+                })
+            return documents
+        except:
+            return []  # Return empty if collection doesn't exist yet
