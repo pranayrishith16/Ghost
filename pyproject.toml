@@ -6,7 +6,7 @@ authors = [
     {name = "pranay rishith",email = "52948338+pranayrishith16@users.noreply.github.com"}
 ]
 packages = [{include = "ghost"}]  # Add this line
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "docker (>=7.1.0,<8.0.0)",
     "easyocr (>=1.7.2,<2.0.0)",

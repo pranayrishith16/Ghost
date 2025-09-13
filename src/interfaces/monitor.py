@@ -10,14 +10,19 @@ class MonitorInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def log_artifact(self, path: str, artifact_path: Optional[str] = None) -> None:
+    def log_artifact(self, artifact_file: str, artifact_name: Optional[str] = None) -> None:
         """Log artifact file"""
         raise NotImplementedError
     
     # Add these new methods:
     @abstractmethod
-    def start_run(self, run_name: str, config: Optional[Dict[str, Any]] = None) -> str:
+    def start_run(self, run_name: str, params: Optional[Dict[str, Any]] = None) -> str:
         """Start a new monitoring run, returns run_id"""
+        raise NotImplementedError
+    
+    @abstractmethod
+    def get_run_info(self, run_id: str) -> Dict[str, Any]:
+        """Retrieve information about a given run"""
         raise NotImplementedError
         
     @abstractmethod
@@ -43,3 +48,8 @@ class MonitorInterface(ABC):
             yield run_id
         finally:
             self.end_run(run_id)
+    
+    @abstractmethod
+    def log_params(self, params:Dict[str,Any]) -> None:
+        """Log hyperparameters or configuration params"""
+        raise NotImplementedError

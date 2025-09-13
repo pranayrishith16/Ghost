@@ -14,7 +14,8 @@ from src.core.factory import (
     ChunkingFactory,
     EmbedderFactory,
     VectorStoreFactory,
-    LLMProviderFactory
+    LLMProviderFactory,
+    MonitoringFactory
 )
 
 # Import your custom components
@@ -53,6 +54,19 @@ class RAGPipeline:
             strategy: RAGGenerator(retriever,self.llm_provider)
             for strategy,retriever in self.retrievers.items()
         }
+
+        # Initialize monitor via factory for modular monitoring
+        monitor_type = (
+            self.config.monitoring.type if self.config.monitoring else None
+        )
+        if monitor_type:
+            self.monitor = MonitoringFactory.create(
+                monitor_type=monitor_type,
+                experiment_name=self.config.monitoring.experiment_name,
+                tracking_uri=self.config.monitoring.tracking_uri,
+            )
+        else:
+            self.monitor = None
 
     def ingest_document(self, file_path: Path, run_id: str | None = None) -> Dict[str, Any]:
         """Process a single document through ingestion, chunking, and embedding."""
@@ -192,13 +206,25 @@ class RAGPipeline:
         process a query through the RAG pipeline
         returns the answer and relevant context
         """
-        
+        run_id = None
         try:
             
             # Validate retrieval strategy
             if retrieval_strategy not in self.generators:
                 available = list(self.generators.keys())
                 raise ValueError(f"Unknown retrieval strategy '{retrieval_strategy}'. Available: {available}")
+            
+            if self.monitor:
+                params = {
+                    "question": question,
+                    "retrieval_strategy": retrieval_strategy,
+                    "query_type": query_type,
+                    "max_results": max_results,
+                }
+                run_id = self.monitor.start_run(
+                    run_name=f"Query-{datetime.now().isoformat()}",
+                    params=params,
+                )
             
             # Use YOUR custom RAGGenerator (not basic LLM call)
             generator = self.generators[retrieval_strategy]
@@ -208,6 +234,17 @@ class RAGPipeline:
                 k=max_results,
                 filters=filters
             )
+
+            if self.monitor:
+                metrics = {
+                    "confidence_score": response.get("confidence_score", 0.0),
+                    "sources_used": len(response.get("sources", [])),
+                    "generation_successful": 1.0,
+                }
+                self.monitor.log_metrics(metrics)
+                self.monitor.log_text(text=response.get("generated_text", ""), name="GeneratedAnswer")
+                self.monitor.end_run(run_id)
+                run_id = None
 
             # Enhance response with pipeline metadata
             enhanced_response = {
@@ -238,7 +275,10 @@ class RAGPipeline:
 
         except Exception as e:
             self.logger.error(f"Pipeline query processing failed: {e}")
-            raise Exception(f"Query processing failed: {e}")
+            if self.monitor and run_id:
+                self.monitor.log_text(text=str(e), name="QueryError")
+                self.monitor.end_run(run_id)
+            raise
     
     def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive statistics about the pipeline and all components."""

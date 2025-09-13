@@ -15,11 +15,12 @@ from src.interfaces.llm_provider_interface import LLMProviderInterface
 from src.document_processor.pdf_extractor import PDFExtractor
 from src.chunking.legal_chunker import LegalChunker
 from src.embedder.sentence_transformer_embedder import SentenceTransformersEmbedder
-from src.vector_store.weaviate import WeaviateStore
+from src.vector_store.weaviate_store import WeaviateStore
 from src.retrieval.basic_retrieval import BasicRetriever
 from src.retrieval.hybrid_retrieval import HybridRetriever
 from src.retrieval.rerank_retrieval import RerankRetriever
 from src.llm_provider.openrouter_llm import OpenRouterProvider
+from src.monitoring.mlflow import MLFlowMonitor
 
 
 # Simple no-op monitor to replace MLflow
@@ -48,9 +49,12 @@ class ChunkingFactory:
 
 class MonitoringFactory:
     @staticmethod
-    def create(monitor_type=None) -> MonitorInterface:
-        # Always return NoOpMonitor (no MLflow)
-        return NoOpMonitor()
+    def create(monitor_type:str=None,tracking_uri:str=None,experiment_name:str=None) -> MonitorInterface:
+        if monitor_type == 'mlflow':
+            return MLFlowMonitor(experiment_name=experiment_name,
+                                 tracking_uri=tracking_uri)
+        else:
+            NoOpMonitor
 
 class EmbedderFactory:
     @staticmethod
