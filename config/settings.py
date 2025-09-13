@@ -58,7 +58,7 @@ class MonitoringConfig:
 @dataclass
 class AppConfig:
     chunking: ChunkingConfig
-    # monitoring: MonitoringConfig
+    monitoring: MonitoringConfig
     embedding: EmbeddingConfig
     llm:LLMConfig
     vector_store:VectorStoreConfig
@@ -152,11 +152,17 @@ def config_load(config_path: Optional[str] = None) -> AppConfig:
         distance_metric=os.getenv("VECTOR_STORE_DISTANCE_METRIC", "cosine"),
     )
 
-    # monitoring_cfg = MonitoringConfig(
-    #     type=os.getenv("MONITORING_TYPE", "mlflow"),
-    #     tracking_uri=os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"),
-    #     experiment_name=os.getenv("EXPERIMENT_NAME", "law_rag_system"),
-    # )
+    monitoring_type = os.getenv("MONITORING_TYPE")
+    monitoring_uri = os.getenv("MLFLOW_TRACKING_URI")
+    experiment_name = os.getenv("EXPERIMENT_NAME")
+
+    monitoring_cfg = None
+    if monitoring_type and monitoring_uri and experiment_name:
+        monitoring_cfg = MonitoringConfig(
+            type=monitoring_type,
+            tracking_uri=monitoring_uri,
+            experiment_name=experiment_name,
+        )
 
     _config_instance = AppConfig(
         chunking=chunking_cfg,
@@ -164,6 +170,7 @@ def config_load(config_path: Optional[str] = None) -> AppConfig:
         vector_store=vector_store_cfg,
         embedding=embedding_cfg,
         environment=env,
+        monitoring=monitoring_cfg,
         data_dir=os.getenv("DATA_DIR", "data/raw/"),
     )
     return _config_instance
