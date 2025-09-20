@@ -1,6 +1,7 @@
 import logging
 import time
 from typing import List, Dict, Any, Optional
+from loguru import logger
 import tiktoken
 
 from src.interfaces.llm_provider_interface import LLMProviderInterface
@@ -16,7 +17,7 @@ class OpenRouterProvider(LLMProviderInterface):
     
     def __init__(self):
         self.config = get_config().llm
-        self.logger = logging.getLogger(__name__)
+        self.logger = logger
         
         # Initialize OpenRouter client (uses OpenAI SDK with custom base URL)
         if not self.config.api_key:
@@ -63,9 +64,12 @@ class OpenRouterProvider(LLMProviderInterface):
             
             return response.choices[0].message.content.strip()
             
+        except openai.OpenAIError as e:
+            self.logger.error(f"OpenRouter generation failed: {e.__class__.__name__}: {str(e)}")
+            raise  # Use explicit OpenAI exception class
         except Exception as e:
-            self.logger.error(f"OpenRouter generation failed: {str(e)}")
-            raise Exception(f"OpenRouter generation failed: {str(e)}")
+            self.logger.error(f"Unexpected error: {str(e)}")
+            raise
     
     def generate_with_context(self, question: str, context: List[str], max_tokens: int = None) -> str:
         """Generate answer using provided context"""
@@ -166,8 +170,8 @@ class OpenRouterProvider(LLMProviderInterface):
         if self.tokenizer:
             try:
                 return len(self.tokenizer.encode(text))
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.warning(f"Tokenization failed ({e}), using fallback estimate.")
         
         # Fallback estimation: roughly 4 characters per token
         return len(text) // 4

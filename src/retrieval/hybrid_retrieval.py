@@ -1,7 +1,9 @@
-import logging
+import loguru
 import time
 from typing import List, Dict, Any, Optional
 import math
+
+from sympy import limit
 
 from src.retrieval.basic_retrieval import BasicRetriever
 from src.interfaces.vector_store_interface import VectorStoreInterface
@@ -13,7 +15,7 @@ try:
     HAS_BM25 = True
 except ImportError:
     HAS_BM25 = False
-    logging.warning("rank-bm25 not available. Hybrid retrieval will use basic similarity only.")
+    loguru.logger.warning("rank-bm25 not available. Hybrid retrieval will use basic similarity only.")
 
 class HybridRetriever(BasicRetriever):
     """Hybrid retriever combining semantic similarity with keyword search (BM25)"""
@@ -55,7 +57,7 @@ class HybridRetriever(BasicRetriever):
             self.logger.info(f"Initialized BM25 with {len(self.corpus_texts)} documents")
             
         except Exception as e:
-            self.logger.error(f"Failed to initialize BM25 corpus: {str(e)}")
+            self.logger.error(f"Failed to initialize BM25 corpus: {str(e)}",exc_info=True)
             self.bm25 = None
     
     def retrieve(self, query: str, k: int = 10, filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
@@ -115,17 +117,24 @@ class HybridRetriever(BasicRetriever):
         """Get semantic similarity results"""
         query_embedding = self.embedder.embed_text(query)
         results = self.vector_store.search(
-            query_vector=query_embedding,
-            k=k,
+            query=query_embedding[0],
+            limit=k,
             filters=filters
         )
         
         processed_results = []
-        for result in results:
+        for i, result in enumerate(results):
+            distance = result.get('distance', None)
+            if distance is None:
+                similarity_score = 0.0
+            else:
+                # Convert distance to similarity for ranking purposes (assuming cosine distance)
+                similarity_score = max(0.0, 1.0 - distance)
+
             processed = {
                 'text': result.get('text', ''),
                 'metadata': result.get('metadata', {}),
-                'similarity_score': result.get('score', 0.0),
+                'similarity_score': similarity_score,
                 'chunk_id': result.get('id', ''),
                 'query': query,
                 'retrieval_method': 'hybrid'

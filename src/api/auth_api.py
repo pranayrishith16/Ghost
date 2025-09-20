@@ -18,7 +18,7 @@ from src.api.models import User, UserInDB
 from src.api.db import users_collection, refresh_tokens_collection
 from config.api_settings import settings
 
-FREE_USER_QUERY_LIMIT = 10
+FREE_USER_QUERY_LIMIT = 50
 FREE_USER_TOKEN_EXP_HOUR_UTC = 0  # Midnight UTC
 
 

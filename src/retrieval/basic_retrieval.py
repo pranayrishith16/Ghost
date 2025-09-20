@@ -1,11 +1,23 @@
-import logging
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
+
+from loguru import logger
 
 from src.interfaces.retriever_interface import RetrieverInterface
 from src.interfaces.vector_store_interface import VectorStoreInterface
 from src.interfaces.embedder import EmbedderInterface
 from config.settings import get_config
+
+LEGAL_KEYWORDS = {
+    "jurisdiction": ["jurisdiction", "court", "province", "state", "territory"],
+    "islegaldoc": ["legal", "law", "case", "judgment"],
+    "citation": ["citation", "cite"],
+}
+
+
+class InvalidQueryException(Exception):
+    pass
+
 
 class BasicRetriever(RetrieverInterface):
     """Simple similarity search retriever using vector embeddings"""
@@ -14,7 +26,7 @@ class BasicRetriever(RetrieverInterface):
         self.config = get_config()
         self.vector_store = vector_store
         self.embedder = embedder
-        self.logger = logging.getLogger(__name__)
+        self.logger = logger
         
         # Retrieval statistics
         self.stats = {
@@ -36,19 +48,28 @@ class BasicRetriever(RetrieverInterface):
             List of retrieved documents with metadata and scores
         """
         start_time = time.time()
+
+        if k <= 0:
+            raise ValueError("Parameter k must be positive")
+        if filters is not None and not isinstance(filters, dict):
+            raise ValueError("Filters must be a dictionary if provided")
         
         try:
+            if len(query)>1000:
+                self.logger.warning("Query too long, truncating to 1000 characters")
+                query = query[:1000]
+
             if not self.validate_query(query):
-                raise Exception(f"Invalid query: {query}")
+                raise InvalidQueryException(f"Invalid query: {query}")
             
             # Generate query embedding
-            self.logger.info(f"Generating embedding for query: {query[:100]}...")
+            self.logger.debug(f"Generating embedding for query: {query[:100]}...")
             query_embedding = self.embedder.embed_text(query)
             
             # Search vector store
             self.logger.info(f"Searching vector store for top {k} results")
             results = self.vector_store.search(
-                query=query_embedding[0],
+                query=query_embedding,
                 limit=k,
                 filters=filters
             )
@@ -64,28 +85,34 @@ class BasicRetriever(RetrieverInterface):
             
             return processed_results
             
+        except InvalidQueryException as e:
+            self.logger.error(f"Invalid Query: {str(e)}")
+            raise
+
         except Exception as e:
             self.logger.error(f"Retrieval failed for query '{query[:50]}...': {str(e)}")
     
     def _process_results(self, results: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
-        """Process and enrich search results"""
         processed = []
-        
         for i, result in enumerate(results):
+            distance = result.get('distance', None)
+            if distance is None:
+                similarity_score = 0.0
+            else:
+                # Convert distance to similarity for ranking purposes (assuming cosine distance)
+                similarity_score = max(0.0, 1.0 - distance)
+        
             processed_result = {
                 'rank': i + 1,
                 'text': result.get('text', ''),
                 'metadata': result.get('metadata', {}),
-                'similarity_score': result.get('score', 0.0),
+                'similarity_score': similarity_score,
                 'chunk_id': result.get('id', ''),
                 'retrieval_method': 'basic_similarity',
                 'query': query
             }
-            
-            # Add legal-specific processing
             processed_result = self._add_legal_context(processed_result)
             processed.append(processed_result)
-            
         return processed
     
     def _add_legal_context(self, result: Dict[str, Any]) -> Dict[str, Any]:
@@ -117,14 +144,15 @@ class BasicRetriever(RetrieverInterface):
         
         return result
     
-    def _update_stats(self, retrieval_time: float, num_results: int):
-        """Update retrieval statistics"""
+    def _update_stats(self, retrievaltime: float, numdocuments: int) -> None:
         self.stats['total_queries'] += 1
-        self.stats['total_documents_retrieved'] += num_results
-        
-        # Update average retrieval time
-        total_time = self.stats['avg_retrieval_time'] * (self.stats['total_queries'] - 1)
-        self.stats['avg_retrieval_time'] = (total_time + retrieval_time) / self.stats['total_queries']
+        totalqueries = self.stats['total_queries']
+        self.stats['avg_retrieval_time'] = (
+            (self.stats['avg_retrieval_time'] * (totalqueries - 1) + retrievaltime) / totalqueries
+        )
+        self.stats['total_documents_retrieved'] += numdocuments
+
+
     
     def get_retrieval_stats(self) -> Dict[str, Any]:
         """Get retrieval performance statistics"""
@@ -135,25 +163,9 @@ class BasicRetriever(RetrieverInterface):
         }
     
     def validate_query(self, query: str) -> bool:
-        """Validate if query is suitable for retrieval"""
         if not query or not query.strip():
             return False
-            
         if len(query.strip()) < 3:
             self.logger.warning("Query too short for effective retrieval")
             return False
-            
-        if len(query) > 1000:
-            self.logger.warning("Query too long, truncating")
-            return True
-            
         return True
-
-    def explain_retrieval(self, query, document_id):
-        return 
-    
-    def get_index_info(self):
-        return 
-    
-    def get_supported_filters(self):
-        return

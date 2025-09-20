@@ -1,7 +1,9 @@
-import logging
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from pathlib import Path
+from functools import lru_cache
+
+from loguru import logger
 
 from src.interfaces.retriever_interface import RetrieverInterface
 from src.interfaces.llm_provider_interface import LLMProviderInterface
@@ -14,7 +16,7 @@ class RAGGenerator:
         self.config = get_config()
         self.retriever = retriever
         self.llm_provider = llm_provider
-        self.logger = logging.getLogger(__name__)
+        self.logger = logger
         
         # Load prompt templates
         self.prompt_templates = self._load_prompt_templates()
@@ -26,6 +28,10 @@ class RAGGenerator:
             'total_context_tokens': 0,
             'avg_response_length': 0.0
         }
+
+    @lru_cache(maxsize=64)
+    def cached_retriever(self,query,k,filters):
+        return self.retriever.retrieve(query,k,filters)
         
     def generate_response(self, query: str, query_type: str = "legal_analysis", 
                          k: int = 10, filters: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -47,8 +53,7 @@ class RAGGenerator:
             self.logger.info(f"Generating response for query: {query[:100]}...")
             
             # Step 1: Retrieve relevant documents
-            retrieved_docs = self.retriever.retrieve(query, k=k, filters=filters)
-            print(retrieved_docs)
+            retrieved_docs = self.cached_retriever(query,k,filters)
             
             if not retrieved_docs:
                 return self._handle_no_results(query)
@@ -74,15 +79,16 @@ class RAGGenerator:
             return final_response
             
         except Exception as e:
-            self.logger.error(f"Generation failed for query '{query[:50]}...': {str(e)}")
-            raise Exception(f"Response generation failed: {str(e)}")
+            import traceback
+            tb = traceback.format_exc()
+            self.logger.error(f"Generation failed for query '{query[:50]}...': {str(e)}\nTraceback:\n{tb}")
+            raise
     
     def _process_retrieved_docs(self, docs: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
         """Process and enhance retrieved documents"""
-        processed_docs = []
         
-        for i, doc in enumerate(docs):
-            processed_doc = {
+        processed_docs = [
+            {
                 'rank': i + 1,
                 'text': doc.get('text', ''),
                 'metadata': doc.get('metadata', {}),
@@ -91,11 +97,8 @@ class RAGGenerator:
                 'legal_context': doc.get('legal_context', {}),
                 'query_relevance': self._assess_query_relevance(doc.get('text', ''), query)
             }
-            
-            # Add citation information
-            processed_doc['citation_info'] = self._extract_citation_info(processed_doc)
-            
-            processed_docs.append(processed_doc)
+            for i,doc in enumerate(docs[:self._get_max_context_docs()])
+        ]
         
         return processed_docs
     
@@ -218,18 +221,18 @@ class RAGGenerator:
         """Get fallback template if file loading fails"""
         return """You are a legal research assistant. Analyze the following query using the provided legal context.
 
-Query: {query}
+        Query: {query}
 
-Legal Context:
-{context}
+        Legal Context:
+        {context}
 
-Instructions:
-1. Provide a comprehensive legal analysis based on the provided context
-2. Cite relevant sources using [Source X] format
-3. Structure your response with clear legal reasoning
-4. If context is insufficient, state what additional information would be needed
+        Instructions:
+        1. Provide a comprehensive legal analysis based on the provided context
+        2. Cite relevant sources using [Source X] format
+        3. Structure your response with clear legal reasoning
+        4. If context is insufficient, state what additional information would be needed
 
-Analysis:"""
+        Analysis:"""
     
     # Helper methods
     def _assess_query_relevance(self, text: str, query: str) -> float:
@@ -250,7 +253,7 @@ Analysis:"""
     def _truncate_prompt(self, prompt: str, max_tokens: int) -> str:
         """Truncate prompt to fit within token limits"""
         estimated_chars_per_token = 4
-        max_chars = max_tokens * estimated_chars_per_token * 0.8  # Safety margin
+        max_chars = (max_tokens * estimated_chars_per_token * 0.8)  # Safety margin
         
         if len(prompt) <= max_chars:
             return prompt

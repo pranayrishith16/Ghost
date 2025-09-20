@@ -1,13 +1,23 @@
 # src/vector_store/weaviate.py
 import logging
 from typing import List, Dict, Any, Optional
-
+from loguru import logger
 import numpy as np
 import weaviate
 import weaviate.classes as wvc
 from weaviate.classes.config import Property, DataType, Configure
 
 from contextlib import contextmanager
+
+class WeaviateStoreError(Exception):
+    """Base class for WeaviateStore related errors."""
+
+class ConnectionError(WeaviateStoreError):
+    """Raised when connection to Weaviate fails."""
+
+class DataValidationError(WeaviateStoreError):
+    """Raised when input data validation fails."""
+
 
 class WeaviateStore:
     """Weaviate implementation of vector storage for legal docs"""
@@ -18,7 +28,7 @@ class WeaviateStore:
         embedder=None,
         client: Optional[weaviate.WeaviateClient] = None,
     ):
-        self.logger = logging.getLogger(__name__)
+        self.logger = logger
         self.collection_name = collection_name
         self.embedder = embedder
         self.client = client or weaviate.connect_to_local()
@@ -154,23 +164,20 @@ class WeaviateStore:
 
     def search(self, query: str, limit: int = 5,filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """Search for similar documents using a text query by embedding it first."""
-        # if not self.embedder:
-        #     raise ValueError("Embedder not provided. Cannot embed query.")
         try:
-            # qv = self.embedder.embed_text(query)
             return self.search_by_vector(query, limit=limit)
         except Exception as e:
             self.logger.error(f"Search failed: {e}")
             raise
 
-    def search_by_vector(self, query_vector: List[float], limit: int = 5) -> List[Dict[str, Any]]:
+    def search_by_vector(self, query_vector: List[float], limit: int = 5,filters=None) -> List[Dict[str, Any]]:
         """Search using a pre-computed vector."""
         try:
             collection = self.client.collections.get(self.collection_name)
             response = collection.query.near_vector(
                 near_vector=query_vector,
                 limit=limit,
-                return_metadata=wvc.query.MetadataQuery(distance=True),
+                return_metadata=wvc.query.MetadataQuery(distance=True,certainty=True),
             )
 
             results: List[Dict[str, Any]] = []
@@ -271,13 +278,13 @@ class WeaviateStore:
         """Get all documents for BM25 initialization"""
         try:
             # Query all objects from your collection
-            result = self.client.query.get(self.collection_name).with_additional(['id']).do()
+            result = self.client.collections.use(self.collection_name)
             documents = []
-            for obj in result.get('data', {}).get('Get', {}).get(self.collection_name, []):
+            for item in result.iterator(return_properties=["text"], cache_size=1000):
                 documents.append({
-                    'text': obj.get('text', ''),
-                    'metadata': obj.get('metadata', {})
+                    "text": item.properties.get("text", ""),
                 })
             return documents
         except:
+            raise Exception('no docs found')
             return []  # Return empty if collection doesn't exist yet

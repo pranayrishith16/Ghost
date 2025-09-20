@@ -1,5 +1,6 @@
 from typing import Dict, Any, List, Optional
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from loguru import logger
 
 from src.interfaces.chunking_interface import ChunkingInterface
 from config.settings import get_config
@@ -8,6 +9,7 @@ class LegalChunker(ChunkingInterface):
     """Legal document specific chunker using RecursiveCharacterTextSplitter"""
 
     def __init__(self) -> None:
+        self.logger = logger
         cfg = get_config().chunking
         self._chunk_size = cfg.chunk_size
         self._overlap = cfg.overlap
@@ -29,10 +31,12 @@ class LegalChunker(ChunkingInterface):
             formatted.append(
                 {
                     "text": ct,
-                    "word_count": len(ct.split()),
-                    "char_count": len(ct),
-                    "chunk_index": i,
-                    "metadata": md,
+                    "metadata":{
+                        "word_count": len(ct.split()),
+                        "char_count": len(ct),
+                        "chunk_index": i,
+                        "metadata":md,
+                    }
                 }
             )
         return formatted

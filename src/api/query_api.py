@@ -13,7 +13,7 @@ router = APIRouter()
 
 class QueryRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=2048, description="The question to query.")
-    retrieval_strategy: Optional[str] = Field("basic", description="Retrieval strategy to use ('basic', 'hybrid', 'rerank').")
+    retrieval_strategy: Optional[str] = Field("hybrid", description="Retrieval strategy to use ('basic', 'hybrid', 'rerank').")
     query_type: Optional[str] = Field("legal_analysis", description="Type of query for LLM context.")
     max_results: Optional[int] = Field(10, ge=1, le=50, description="Maximum number of results to return.")
     filters: Optional[Dict[str, Any]] = Field(None, description="Optional filters for retrieval.")

@@ -47,18 +47,3 @@ class RetrieverInterface(ABC):
     def validate_query(self, query: str) -> bool:
         """Validate if query is suitable for retrieval"""
         pass
-    
-    @abstractmethod
-    def get_supported_filters(self) -> List[str]:
-        """Get list of supported filter types"""
-        pass
-        
-    @abstractmethod
-    def explain_retrieval(self, query: str, document_id: str) -> Dict[str, Any]:
-        """Explain why a document was retrieved for a query"""
-        pass
-        
-    @abstractmethod
-    def get_index_info(self) -> Dict[str, Any]:
-        """Get information about the underlying index"""
-        pass
